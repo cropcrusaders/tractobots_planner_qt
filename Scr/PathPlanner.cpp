@@ -14,16 +14,14 @@ std::vector<BoostLinestr> PathPlanner::computeRows(
     double headland)
 {
     using Polygon = bg::model::polygon<BoostPt>;
-    Polygon poly;
-    bg::assign_points(poly, boundary);
-    bg::correct(poly);
+    Polygon poly; bg::assign_points(poly, boundary); bg::correct(poly);
 
-    // 1) Buffer inward to carve out headland
+    // carve off headland
     Polygon inner;
     bg::buffer(poly, inner,
       bg::strategy::buffer::distance_symmetric<double>(-headland));
 
-    // 2) Find minimal rotated rectangle to get row orientation
+    // figure row orientation
     Polygon minRect;
     bg::minimum_rotated_rectangle(inner, minRect);
     auto coords = minRect.outer();
@@ -31,30 +29,26 @@ std::vector<BoostLinestr> PathPlanner::computeRows(
     double dy = coords[1].y() - coords[0].y();
     double angle = std::atan2(dy, dx);
 
-    // 3) Rotate inner polygon so rows align with X axis
+    // rotate so rows align with X
     Polygon rotated;
     bg::transform(inner, rotated,
       bg::strategy::transform::rotate_transformer<double,2,2>(-angle));
 
-    // 4) Intersect with vertical lines spaced by 'spacing'
-    bg::model::box<BoostPt> bbox;
-    bg::envelope(rotated, bbox);
-    double minx = bbox.min_corner().x();
-    double maxx = bbox.max_corner().x();
-    double miny = bbox.min_corner().y();
-    double maxy = bbox.max_corner().y();
+    // intersect with vertical lines
+    bg::model::box<BoostPt> bbox; bg::envelope(rotated, bbox);
+    double minx=bbox.min_corner().x(), maxx=bbox.max_corner().x();
+    double miny=bbox.min_corner().y(), maxy=bbox.max_corner().y();
 
     std::vector<BoostLinestr> rows;
-    for (double x = minx + spacing/2.0; x < maxx; x += spacing) {
-        BoostLinestr line{{x, miny}, {x, maxy}};
+    for(double x=minx+spacing/2; x<maxx; x+=spacing){
+        BoostLinestr L{{x,miny},{x,maxy}};
         std::vector<BoostLinestr> segs;
-        bg::intersection(line, rotated, segs);
-        for (auto &seg : segs) {
-            // Rotate segment back to original orientation
-            BoostLinestr segOut;
-            bg::transform(seg, segOut,
+        bg::intersection(L, rotated, segs);
+        for(auto &s:segs){
+            BoostLinestr out;
+            bg::transform(s, out,
               bg::strategy::transform::rotate_transformer<double,2,2>(angle));
-            rows.push_back(std::move(segOut));
+            rows.push_back(std::move(out));
         }
     }
     return rows;
@@ -65,45 +59,64 @@ std::vector<Segment> PathPlanner::computePlan(
     double spacing,
     double headland,
     double turn_radius,
-    bool reverse_passes)
+    bool   reverse_passes,
+    double reverse_dist)
 {
-    // First generate straight rows
     auto rows = computeRows(boundary, spacing, headland);
     plan_.clear();
-
     bool forward = true;
-    for (size_t i = 0; i < rows.size(); ++i) {
-        // Add straight pass (reverse if zig‑zag and forward==false)
-        bool rev = reverse_passes ? !forward : false;
-        plan_.push_back({ rows[i], rev, 0.0 });
 
-        // If a turn is requested and not last row, build a semicircular arc
-        if (turn_radius > 0 && i + 1 < rows.size()) {
-            // End point of current row
-            BoostPt P = forward ? rows[i].back() : rows[i].front();
-            // Start point of next row
-            BoostPt Q = forward ? rows[i+1].front() : rows[i+1].back();
+    for(size_t i=0; i<rows.size(); ++i){
+      // 1) Straight pass
+      bool rev = reverse_passes ? !forward : false;
+      plan_.push_back({ rows[i], rev, 0.0 });
 
-            // Base direction and perpendicular for center
-            double dx = Q.x() - P.x(), dy = Q.y() - P.y();
-            double base = std::atan2(dy, dx);
-            double cx = P.x() - turn_radius * std::sin(base);
-            double cy = P.y() + turn_radius * std::cos(base);
+      // 2) Reverse back if requested
+      if(reverse_dist>0){
+        // end point of this pass
+        BoostPt P = forward ? rows[i].back() : rows[i].front();
+        // compute heading direction of pass
+        BoostPt Pprev = forward
+          ? rows[i][ rows[i].size()-2 ]
+          : rows[i][1];
+        double hd = std::atan2(P.y()-Pprev.y(), P.x()-Pprev.x());
+        // compute back‑up point
+        BoostPt B( P.x() - reverse_dist*std::cos(hd),
+                   P.y() - reverse_dist*std::sin(hd) );
+        // build reverse segment (two points)
+        BoostLinestr revLine;
+        revLine.push_back(P);
+        revLine.push_back(B);
+        plan_.push_back({ revLine, true, 0.0 });
+      }
 
-            // Discretize 180° arc into N steps
-            const int N = 20;
-            BoostLinestr arc;
-            for (int k = 0; k <= N; ++k) {
-                double theta = base + M_PI * (k / double(N));
-                double x = cx + turn_radius * std::cos(theta);
-                double y = cy + turn_radius * std::sin(theta);
-                arc.push_back({x, y});
-            }
-            plan_.push_back({ arc, false, turn_radius });
+      // 3) Turn arc if requested
+      if(turn_radius>0 && i+1<rows.size()){
+        auto &r = rows[i];
+        auto &n = rows[i+1];
+        // pivot points
+        BoostPt P = forward ? r.back()  : r.front();
+        BoostPt Q = forward ? n.front() : n.back();
+        // direction & center
+        double dx = Q.x()-P.x(), dy = Q.y()-P.y();
+        double base = std::atan2(dy, dx);
+        double cx = P.x() - turn_radius*std::sin(base);
+        double cy = P.y() + turn_radius*std::cos(base);
+        // discretize 180° arc
+        BoostLinestr arc;
+        const int N=20;
+        for(int k=0;k<=N;++k){
+          double theta = base + M_PI*(k/double(N));
+          arc.push_back({
+            cx + turn_radius*std::cos(theta),
+            cy + turn_radius*std::sin(theta)
+          });
         }
+        plan_.push_back({ arc, false, turn_radius });
+      }
 
-        // Flip direction if zig‑zag
-        if (reverse_passes) forward = !forward;
+      // 4) flip for zig‑zag
+      if(reverse_passes) forward = !forward;
     }
 
     return plan_;
@@ -114,55 +127,41 @@ void PathPlanner::exportGCode(
     double feedrate) const
 {
     std::ofstream fout(fname);
-    fout << "; Tractobots G-code plan (with turns & headings)\n";
-    fout << "G21 ; mm\nG90 ; absolute\n";
-    fout << "F" << feedrate << "\n\n";
+    fout<<"; Tractobots G‑code plan (with reverse & turns)\n";
+    fout<<"G21 ; mm\nG90 ; absolute\n";
+    fout<<"F"<<feedrate<<"\n\n";
 
-    for (auto const &seg : plan_) {
-        // Implement up
-        fout << "M3 S0\n";
-        auto const &pts = seg.line;
-        if (pts.empty()) continue;
+    for(auto const &seg:plan_){
+      auto &pts = seg.line;
+      if(pts.empty()) continue;
+      // up implement
+      fout<<"M3 S0\n";
+      // rapid to start w/ heading
+      {
+        auto P0=pts.front(), P1=pts.size()>1?pts[1]:pts.front();
+        double hd=std::atan2(P1.y()-P0.y(),P1.x()-P0.x())*180.0/M_PI;
+        fout<<"G0 X"<<P0.x()<<" Y"<<P0.y()<<" ; heading="<<hd<<"\n";
+      }
+      // down implement
+      fout<<"M3 S1\n";
 
-        // Rapid to first point (with heading)
-        {
-            auto P0 = pts.front();
-            double hd = 0.0;
-            if (pts.size() > 1) {
-                auto P1 = pts[1];
-                hd = std::atan2(P1.y() - P0.y(), P1.x() - P0.x()) * 180.0 / M_PI;
-            }
-            fout << "G0 X" << P0.x() << " Y" << P0.y()
-                 << " ; heading=" << hd << "\n";
+      // choose arc or line
+      if(seg.turn_radius>0 && pts.size()>2){
+        // simple G2 w/ zero I/J placeholder
+        auto Pend=pts.back();
+        fout<<"G2 X"<<Pend.x()<<" Y"<<Pend.y()
+            <<" I0 J0 ; arc r="<<seg.turn_radius<<"\n\n";
+      } else {
+        // straight or reverse
+        for(size_t i=1;i<pts.size();++i){
+          auto &A=pts[i-1],&B=pts[i];
+          double hd=std::atan2(B.y()-A.y(),B.x()-A.x())*180.0/M_PI;
+          fout<<(seg.reverse?"G1 R ":"G1 ")
+              <<"X"<<B.x()<<" Y"<<B.y()
+              <<" ; heading="<<hd<<"\n";
         }
-
-        // Implement down
-        fout << "M3 S1\n";
-
-        // Arc segment (G2) or linear (G1)
-        if (seg.turn_radius > 0 && pts.size() > 2) {
-            // Use G2 (CW) for the arc; calculate I,J from center-offset
-            // Recompute center same as in computePlan
-            auto &P = pts.front();
-            auto &Q = pts.back();
-            // You could store center during computePlan; here assume same logic:
-            // (for brevity we treat this as G2 from P->Q with I,J=0; refine as needed)
-            fout << "G2 X" << Q.x() << " Y" << Q.y()
-                 << " I0 J0 ; arc radius=" << seg.turn_radius << "\n\n";
-        } else {
-            // Linear moves
-            for (size_t i = 1; i < pts.size(); ++i) {
-                auto const &A = pts[i-1];
-                auto const &B = pts[i];
-                double hd = std::atan2(B.y() - A.y(), B.x() - A.x()) * 180.0 / M_PI;
-                fout << (seg.reverse ? "G1 R " : "G1 ")
-                     << "X" << B.x() << " Y" << B.y()
-                     << " ; heading=" << hd << "\n";
-            }
-            fout << "\n";
-        }
+        fout<<"\n";
+      }
     }
-
-    // Final implement up & program end
-    fout << "M3 S0\nM2\n";
+    fout<<"M3 S0\nM2\n";
 }
