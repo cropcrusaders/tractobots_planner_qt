@@ -6,64 +6,56 @@
 #include <boost/geometry/geometries/linestring.hpp>
 
 namespace bg = boost::geometry;
-
-// 2D point and polyline types
 using BoostPt      = bg::model::d2::point_xy<double>;
 using BoostLinestr = bg::model::linestring<BoostPt>;
 
-/**
- * A single segment in the plan: either a straight pass or a turn arc.
- */
+/** A single straight pass or arc or reverse segment **/
 struct Segment {
-  BoostLinestr line;       ///< Sequence of points to follow
-  bool         reverse;    ///< true = drive backwards
-  double       turn_radius;///< >0 for an arc segment (G2/G3), 0 for straight
+  BoostLinestr line;       ///< points to follow
+  bool         reverse;    ///< drive backwards if true
+  double       turn_radius;///< >0 for arc, 0 for straight or reverse
 };
 
 class PathPlanner {
 public:
   PathPlanner() = default;
 
-  /**
-   * Compute the polygon’s rows (without turns).
-   * @param boundary   CCW points defining field (local coords)
-   * @param spacing    distance between adjacent rows (m)
-   * @param headland   inward buffer margin where no passes go (m)
-   * @return list of straight lines for each row
-   */
+  /// Just compute straight rows (no turns or reverse)
   std::vector<BoostLinestr> computeRows(
     const std::vector<BoostPt>& boundary,
     double spacing,
     double headland);
 
   /**
-   * Compute the full pass‑by‑pass plan, including turn arcs.
-   * @param boundary        field polygon
-   * @param spacing         row spacing
-   * @param headland        buffer margin
-   * @param turn_radius     radius for smoothing turns (m; 0 = sharp)
-   * @param reverse_passes  if true, alternate drive direction each row
-   * @return ordered segments (rows + turn arcs)
+   * Compute full plan:
+   *  - straight passes (zig‑zag if reverse_passes)
+   *  - optional reverse segment at end of each pass
+   *  - smoothing arc turn of radius turn_radius
+   *
+   * @param boundary       field polygon
+   * @param spacing        row spacing (m)
+   * @param headland       inward buffer (m)
+   * @param turn_radius    turn smoothing radius (m; 0 = sharp)
+   * @param reverse_passes zig‑zag direction if true
+   * @param reverse_dist   how far to reverse at each end (m; 0 = none)
    */
   std::vector<Segment> computePlan(
     const std::vector<BoostPt>& boundary,
     double spacing,
     double headland,
     double turn_radius,
-    bool   reverse_passes);
+    bool   reverse_passes,
+    double reverse_dist);
 
   /**
-   * Export the last plan to a G‑code file.
-   * - M3 S0/S1 = implement up/down
-   * - G0 = rapid move
-   * - G1 = linear cut
-   * - G2 = CW arc, G3 = CCW arc
-   * Each move line is annotated with “; heading=…” in degrees.
+   * Export last plan to G‑code, embedding heading comments:
+   *  M3 S0/S1 = implement up/down
+   *  G0 = rapid, G1 = linear, G2 = CW arc, G3 = CCW arc
    */
   void exportGCode(
     const std::string &fname,
     double feedrate = 1000.0) const;
 
 private:
-  std::vector<Segment> plan_;  ///< holds the computed plan
+  std::vector<Segment> plan_;
 };
