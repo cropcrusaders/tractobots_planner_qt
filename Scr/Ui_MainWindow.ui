@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="windowTitle">
+   <string>Tractobots Planner</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QGraphicsView" name="graphicsView"/>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="controlsLayout">
+      <item>
+       <widget class="QDoubleSpinBox" name="rowSpacingSpin">
+        <property name="prefix"><string>Row Spacing (m): </string></property>
+        <property name="minimum"><double>0.1</double></property>
+        <property name="value"><double>10.0</double></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="headlandSpin">
+        <property name="prefix"><string>Headland (m): </string></property>
+        <property name="minimum"><double>0.0</double></property>
+        <property name="value"><double>5.0</double></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="generateButton">
+        <property name="text"><string>Generate</string></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="exportButton">
+        <property name="text"><string>Export G-Code...</string></property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar"/>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
