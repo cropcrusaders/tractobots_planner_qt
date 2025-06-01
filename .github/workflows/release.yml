@@ -2,8 +2,8 @@ name: Build & Release (Windows MSI)
 
 on:
   push:
-    branches: [main]     # build every commit to main
-    tags:     ['*']      # and every tag, e.g. v1.3.0
+    branches: [main]      # build every commit to main
+    tags:     ['*']       # build every tag (e.g. v1.4.0)
   workflow_dispatch:
     inputs:
       version:
@@ -19,7 +19,7 @@ jobs:
   msi:
     runs-on: windows-latest
 
-    # Resolve once, re-use everywhere
+    # Single place to resolve the version string we’ll use everywhere
     env:
       RELEASE_VERSION: >-
         ${{ github.event_name == 'workflow_dispatch'
@@ -67,20 +67,22 @@ jobs:
       run: dotnet tool install --global wix --version 4.*
 
     # ----------------------------------------------------------
-    # 6. Build the MSI
+    # 6. Build the MSI  (correct -d "Name=Value" syntax)
     # ----------------------------------------------------------
     - name: Pack MSI
       shell: pwsh
       run: |
         $buildDir = "${{ github.workspace }}\build\src\gcode_gen\Release"
+        $version  = "${{ env.RELEASE_VERSION }}"
+
         wix build wix\installer.wxs `
-                 -dVersion=${{ env.RELEASE_VERSION }} `
-                 -dBuildDir="$buildDir" `
                  -arch x64 `
-                 -out dist\gcode_gen-${{ env.RELEASE_VERSION }}-x64.msi
+                 -d "Version=$version" `
+                 -d "BuildDir=$buildDir" `
+                 -out "dist\gcode_gen-$version-x64.msi"
 
     # ----------------------------------------------------------
-    # 7. Upload MSI as artifact (always)
+    # 7. Upload MSI as workflow artifact (always)
     # ----------------------------------------------------------
     - name: Upload artifact
       uses: actions/upload-artifact@v4
