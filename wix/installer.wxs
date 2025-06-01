@@ -1,15 +1,13 @@
-<!-- gcode_gen WiX v4 installer definition -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
 
-  <!-- The single required top-level element in WiX 4 -->
+  <!-- gcode_gen MSI ---------------------------------------------------- -->
   <Product
       Name="gcode_gen"
       Manufacturer="CropCrusaders"
       Version="$(var.Version)"
       UpgradeCode="BED5A804-5004-4E97-9DC1-C3C65803EA45">
 
-    <!-- 1️⃣  INSTALL LOCATION  ------------------------------------------------>
-    <!--   C:\Program Files\CropCrusaders\gcode_gen                           -->
+    <!-- INSTALL LOCATION:  C:\Program Files\CropCrusaders\gcode_gen -->
     <Package />
 
     <StandardDirectory Id="ProgramFilesFolder">
@@ -18,7 +16,7 @@
       </Directory>
     </StandardDirectory>
 
-    <!-- 2️⃣  MAIN PAYLOAD  --------------------------------------------------->
+    <!-- Main payload -->
     <ComponentGroup Id="MainFiles" Directory="PRODUCTDIR">
       <Component Id="cmpExe" Guid="*">
         <File
@@ -28,7 +26,7 @@
       </Component>
     </ComponentGroup>
 
-    <!-- 3️⃣  SHORTCUT (optional but nice) ----------------------------------->
+    <!-- Start-menu shortcut -->
     <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="PROGDIR" Name="CropCrusaders" />
     </StandardDirectory>
@@ -50,7 +48,7 @@
       </Component>
     </ComponentGroup>
 
-    <!-- 4️⃣  FEATURES -------------------------------------------------------->
+    <!-- Feature tree -->
     <Feature Id="Main" Title="gcode_gen" Level="1">
       <ComponentGroupRef Id="MainFiles" />
       <ComponentGroupRef Id="MenuShortcuts" />
