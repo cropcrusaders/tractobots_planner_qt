@@ -58,6 +58,21 @@ cmake --build . --parallel
 
 # 5. Run
 ./tracto_planner_qt
+
+```
+
+To build the command-line G-code generator:
+
+```bash
+# Build once
+cmake -S . -B build && cmake --build build -j
+
+# Generate map
+./build/gcode_gen \
+    --in waypoints.csv \
+    --out north_strip.gcode \
+    --comment "North paddock – May 2025" \
+    --speed 0.9
 ```
 
 ---

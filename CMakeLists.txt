@@ -1,21 +1,29 @@
 cmake_minimum_required(VERSION 3.10)
 project(TractobotsPlannerQt)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
-find_package(Boost REQUIRED COMPONENTS geometry)
+set(CMAKE_CXX_STANDARD 17)
 
-add_executable(tracto_planner_qt
-  src/main.cpp
-  src/MainWindow.cpp
-  src/PathPlanner.cpp
-  src/MainWindow.h
-  src/PathPlanner.h
-  src/Ui_MainWindow.ui
-)
+option(BUILD_GUI "Build Qt GUI" OFF)
+enable_testing()
+if(BUILD_GUI)
+  find_package(Qt6 REQUIRED COMPONENTS Widgets)
+  find_package(Boost REQUIRED COMPONENTS geometry)
 
-qt6_wrap_ui(UISrcs src/Ui_MainWindow.ui)
+  add_executable(tracto_planner_qt
+    Scr/main.cpp
+    Scr/MainWindow.cpp
+    Scr/PathPlanner.cpp
+    Scr/MainWindow.h
+    Scr/PathPlanner.h
+    Scr/Ui_MainWindow.ui
+  )
 
-target_link_libraries(tracto_planner_qt
-  Qt6::Widgets
-  Boost::geometry
-)
+  qt6_wrap_ui(UISrcs Scr/Ui_MainWindow.ui)
+
+  target_link_libraries(tracto_planner_qt
+    Qt6::Widgets
+    Boost::geometry
+  )
+endif()
+
+add_subdirectory(src/gcode_gen)
