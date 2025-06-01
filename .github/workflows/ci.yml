@@ -9,11 +9,20 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      TZ: Australia/Brisbane
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
     - uses: actions/checkout@v4
+    - name: Set timezone (Linux)
+      if: runner.os == 'Linux'
+      run: sudo timedatectl set-timezone 'Australia/Brisbane'
+    - name: Set timezone (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: Set-TimeZone -Id 'AUS Eastern Standard Time'
     - name: Configure
       run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=OFF
     - name: Build

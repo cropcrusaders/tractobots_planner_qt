@@ -12,9 +12,14 @@ permissions:
 jobs:
   msi:
     runs-on: windows-latest
+    env:
+      TZ: Australia/Brisbane
 
     steps:
     - uses: actions/checkout@v4
+    - name: Set timezone
+      shell: pwsh
+      run: Set-TimeZone -Id 'AUS Eastern Standard Time'
 
     # 1. Set up MSBuild / VS toolchain
     - uses: microsoft/setup-msbuild@v1.1
