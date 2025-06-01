@@ -18,6 +18,7 @@ permissions:
 jobs:
   msi:
     runs-on: windows-latest
+
     env:
       RAW_VERSION: >-
         ${{ github.event_name == 'workflow_dispatch'
@@ -38,9 +39,7 @@ jobs:
       shell: pwsh
       run: cmake --build build --config Release
 
-    # ----------------------------------------------------------------
-    # Compute a WiX-legal version string
-    # ----------------------------------------------------------------
+    # ----------------------- Sanitize version ------------------------
     - name: Compute version
       id: ver
       shell: pwsh
@@ -48,44 +47,27 @@ jobs:
         $raw = "${{ env.RAW_VERSION }}"
         if ($raw -match '^refs/tags/(.+)') { $raw = $Matches[1] }
         if ($raw.StartsWith('v')) { $raw = $raw.Substring(1) }
-        $isSemVer = $raw -match '^\d+\.\d+\.\d+(\.\d+)?(-[0-9A-Za-z\-.]+(\.\d+)?)?$'
-        if (-not $isSemVer) { $raw = "0.0.${{ github.run_number }}.0" }
+        $isOK = $raw -match '^\d+\.\d+\.\d+(\.\d+)?(-[0-9A-Za-z\-.]+(\.\d+)?)?$'
+        if (-not $isOK) { $raw = "0.0.${{ github.run_number }}.0" }
         echo "safe=$raw" >> $env:GITHUB_OUTPUT
 
-    - name: Prepare dist folder
+    - name: Prep dist
       shell: pwsh
       run: |
         Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
         New-Item -ItemType Directory -Path dist | Out-Null
 
-    - name: Install WiX Toolset
+    - name: Install WiX
       shell: pwsh
       run: dotnet tool install --global wix --version 4.*
 
-    # ----------------------------------------------------------------
-    # Harvest every file in the Release directory -> build_files.wxs
-    # ----------------------------------------------------------------
-    - name: Harvest build output
-      shell: pwsh
-      run: |
-        $buildDir = "${{ github.workspace }}\build\src\gcode_gen\Release"
-        wix harvest directory `
-          -var BuildDir `
-          -id BuildOutput `
-          -cg BuildComponents `
-          -dr PRODUCTDIR `
-          -o build_files.wxs `
-          $buildDir
-
-    # ----------------------------------------------------------------
-    # Build the MSI using installer.wxs + harvested build_files.wxs
-    # ----------------------------------------------------------------
+    # ----------------------- Build MSI -------------------------------
     - name: Pack MSI
       shell: pwsh
       run: |
         $buildDir = "${{ github.workspace }}\build\src\gcode_gen\Release"
         $version  = "${{ steps.ver.outputs.safe }}"
-        wix build wix\installer.wxs build_files.wxs `
+        wix build wix\installer.wxs `
             -arch x64 `
             -d "Version=$version" `
             -d "BuildDir=$buildDir" `
