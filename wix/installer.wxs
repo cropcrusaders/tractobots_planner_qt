@@ -3,23 +3,25 @@
   <Package Name="gcode_gen"
            Manufacturer="CropCrusaders"
            Version="1.0.0"
-           InstallerVersion="600" />
+           InstallerVersion="600"
+           UpgradeCode="{bed5a804-5004-4e97-9dc1-c3c65803ea45}">
 
-  <!-- Install to C:\Program Files\CropCrusaders\gcode_gen -->
-  <DirectoryRef Id="ProgramFilesFolder">
-    <Directory Id="INSTALLFOLDER" Name="CropCrusaders">
-      <Directory Id="TARGETDIR" Name="gcode_gen" />
-    </Directory>
-  </DirectoryRef>
+    <!-- Install to C:\Program Files\CropCrusaders\gcode_gen -->
+    <DirectoryRef Id="ProgramFilesFolder">
+      <Directory Id="INSTALLFOLDER" Name="CropCrusaders">
+        <Directory Id="TARGETDIR" Name="gcode_gen" />
+      </Directory>
+    </DirectoryRef>
 
-  <!-- Actual payload -->
-  <ComponentGroup Id="MainFiles" Directory="TARGETDIR">
-    <Component>
-      <File Source="build\\Release\\gcode_gen.exe" />
-    </Component>
-  </ComponentGroup>
+    <!-- Actual payload -->
+    <ComponentGroup Id="MainFiles" Directory="TARGETDIR">
+      <Component>
+        <File Source="build\\Release\\gcode_gen.exe" />
+      </Component>
+    </ComponentGroup>
 
-  <Feature Id="DefaultFeature" Title="gcode_gen" Level="1">
-    <ComponentGroupRef Id="MainFiles" />
-  </Feature>
+    <Feature Id="DefaultFeature" Title="gcode_gen" Level="1">
+      <ComponentGroupRef Id="MainFiles" />
+    </Feature>
+  </Package>
 </Wix>
