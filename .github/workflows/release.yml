@@ -1,4 +1,4 @@
-name: Build & Release (Windows MSI)
+name: "Build & Release (Windows MSI)"
 
 'on':
   push:
