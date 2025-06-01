@@ -21,6 +21,12 @@ jobs:
         cmake -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release
 
+    # Ensure output directory exists for the installer
+    - name: Prepare dist folder
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Path dist -Force | Out-Null
+
     # 3. Install WiX v4 CLI (candle/light combined into `wix.exe build`)
     - name: Install WiX Toolset
       shell: pwsh
