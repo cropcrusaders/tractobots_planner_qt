@@ -3,7 +3,7 @@ name: Build & Release (Windows MSI)
 on:
   push:
     branches: [main]
-    tags:     ['*']
+    tags: ['*']
   workflow_dispatch:
     inputs:
       version:
@@ -18,7 +18,6 @@ permissions:
 jobs:
   msi:
     runs-on: windows-latest
-
     env:
       RAW_VERSION: >-
         ${{ github.event_name == 'workflow_dispatch'
@@ -28,14 +27,7 @@ jobs:
             || github.sha }}
 
     steps:
-    # ----------------------------------------------------------
-    # 0. Check out source
-    # ----------------------------------------------------------
     - uses: actions/checkout@v4
-
-    # ----------------------------------------------------------
-    # 1. Prepare MSBuild / CMake
-    # ----------------------------------------------------------
     - uses: microsoft/setup-msbuild@v1.1
 
     - name: Configure CMake
@@ -46,72 +38,65 @@ jobs:
       shell: pwsh
       run: cmake --build build --config Release
 
-    # ----------------------------------------------------------
-    # 2. Compute WiX-safe version
-    # ----------------------------------------------------------
+    # ----------------------------------------------------------------
+    # Compute a WiX-legal version string
+    # ----------------------------------------------------------------
     - name: Compute version
       id: ver
       shell: pwsh
       run: |
         $raw = "${{ env.RAW_VERSION }}"
-
-        # Strip leading 'refs/tags/' and optional 'v'
         if ($raw -match '^refs/tags/(.+)') { $raw = $Matches[1] }
         if ($raw.StartsWith('v')) { $raw = $raw.Substring(1) }
-
-        # Regex for WiX-acceptable SemVer (very close approximation)
-        $isSemVer = $raw -match '^\d+\.\d+\.\d+(\.\d+)?(-[0-9A-Za-z\-\.]+(\.\d+)?)?$'
-
-        if (-not $isSemVer) {
-          $run = "${{ github.run_number }}"
-          $raw = "0.0.$run.0"
-        }
-
+        $isSemVer = $raw -match '^\d+\.\d+\.\d+(\.\d+)?(-[0-9A-Za-z\-.]+(\.\d+)?)?$'
+        if (-not $isSemVer) { $raw = "0.0.${{ github.run_number }}.0" }
         echo "safe=$raw" >> $env:GITHUB_OUTPUT
 
-    # ----------------------------------------------------------
-    # 3. Prepare dist folder
-    # ----------------------------------------------------------
     - name: Prepare dist folder
       shell: pwsh
       run: |
         Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
         New-Item -ItemType Directory -Path dist | Out-Null
 
-    # ----------------------------------------------------------
-    # 4. Install WiX CLI
-    # ----------------------------------------------------------
     - name: Install WiX Toolset
       shell: pwsh
       run: dotnet tool install --global wix --version 4.*
 
-    # ----------------------------------------------------------
-    # 5. Build MSI
-    # ----------------------------------------------------------
+    # ----------------------------------------------------------------
+    # Harvest every file in the Release directory -> build_files.wxs
+    # ----------------------------------------------------------------
+    - name: Harvest build output
+      shell: pwsh
+      run: |
+        $buildDir = "${{ github.workspace }}\build\src\gcode_gen\Release"
+        wix harvest directory `
+          -var BuildDir `
+          -id BuildOutput `
+          -cg BuildComponents `
+          -dr PRODUCTDIR `
+          -o build_files.wxs `
+          $buildDir
+
+    # ----------------------------------------------------------------
+    # Build the MSI using installer.wxs + harvested build_files.wxs
+    # ----------------------------------------------------------------
     - name: Pack MSI
       shell: pwsh
       run: |
-        $buildDir  = "${{ github.workspace }}\build\src\gcode_gen\Release"
-        $version   = "${{ steps.ver.outputs.safe }}"
-
-        wix build wix\installer.wxs `
+        $buildDir = "${{ github.workspace }}\build\src\gcode_gen\Release"
+        $version  = "${{ steps.ver.outputs.safe }}"
+        wix build wix\installer.wxs build_files.wxs `
             -arch x64 `
             -d "Version=$version" `
             -d "BuildDir=$buildDir" `
             -out "dist\gcode_gen-$version-x64.msi"
 
-    # ----------------------------------------------------------
-    # 6. Upload artifact
-    # ----------------------------------------------------------
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: gcode_gen-msi
         path: dist\*.msi
 
-    # ----------------------------------------------------------
-    # 7. Publish GitHub Release (tag or manual)
-    # ----------------------------------------------------------
     - name: Publish GitHub release
       if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
