@@ -1,57 +1,57 @@
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<?xml version="1.0" encoding="utf-8"?>
+<Product
+    xmlns="http://wixtoolset.org/schemas/v4/wxs"
+    Name="gcode_gen"
+    Manufacturer="CropCrusaders"
+    Version="$(var.Version)"
+    UpgradeCode="BED5A804-5004-4E97-9DC1-C3C65803EA45">
 
-  <Product
-      Name="gcode_gen"
-      Manufacturer="CropCrusaders"
-      Version="$(var.Version)"
-      UpgradeCode="BED5A804-5004-4E97-9DC1-C3C65803EA45">
+  <!-- MSI metadata -->
+  <Package InstallerVersion="600" />
 
-    <Package />
+  <!-- Install path: C:\Program Files\CropCrusaders\gcode_gen -->
+  <StandardDirectory Id="ProgramFilesFolder">
+    <Directory Id="INSTALLFOLDER" Name="CropCrusaders">
+      <Directory Id="PRODUCTDIR"  Name="gcode_gen" />
+    </Directory>
+  </StandardDirectory>
 
-    <!-- C:\Program Files\CropCrusaders\gcode_gen -->
-    <StandardDirectory Id="ProgramFilesFolder">
-      <Directory Id="INSTALLFOLDER" Name="CropCrusaders">
-        <Directory Id="PRODUCTDIR"  Name="gcode_gen" />
-      </Directory>
-    </StandardDirectory>
+  <!-- Main executable -->
+  <ComponentGroup Id="MainFiles" Directory="PRODUCTDIR">
+    <Component Id="CmpExe" Guid="*">
+      <File
+        Id="FilExe"
+        Source="$(var.BuildDir)\gcode_gen.exe"
+        KeyPath="yes" />
+    </Component>
+  </ComponentGroup>
 
-    <!-- Main executable -->
-    <ComponentGroup Id="MainFiles" Directory="PRODUCTDIR">
-      <Component Id="CmpExe" Guid="*">
-        <File
-          Id="FilExe"
-          Source="$(var.BuildDir)\gcode_gen.exe"
-          KeyPath="yes" />
-      </Component>
-    </ComponentGroup>
+  <!-- Start-menu shortcut -->
+  <StandardDirectory Id="ProgramMenuFolder">
+    <Directory Id="PROGDIR" Name="CropCrusaders" />
+  </StandardDirectory>
 
-    <!-- Start-menu shortcut -->
-    <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="PROGDIR" Name="CropCrusaders" />
-    </StandardDirectory>
+  <ComponentGroup Id="MenuShortcuts" Directory="PROGDIR">
+    <Component Id="CmpShortcut" Guid="*">
+      <Shortcut
+        Id="ScExe"
+        Name="gcode_gen"
+        Target="[PRODUCTDIR]gcode_gen.exe"
+        WorkingDirectory="PRODUCTDIR" />
+      <RemoveFolder Id="RmProgDir" On="uninstall" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\CropCrusaders\gcode_gen"
+        Type="string"
+        Value="installed"
+        KeyPath="yes" />
+    </Component>
+  </ComponentGroup>
 
-    <ComponentGroup Id="MenuShortcuts" Directory="PROGDIR">
-      <Component Id="CmpShortcut" Guid="*">
-        <Shortcut
-          Id="ScExe"
-          Name="gcode_gen"
-          Target="[PRODUCTDIR]gcode_gen.exe"
-          WorkingDirectory="PRODUCTDIR" />
-        <RemoveFolder Id="RmProgDir" On="uninstall" />
-        <RegistryValue
-          Root="HKCU"
-          Key="Software\CropCrusaders\gcode_gen"
-          Type="string"
-          Value="installed"
-          KeyPath="yes" />
-      </Component>
-    </ComponentGroup>
+  <!-- Feature tree -->
+  <Feature Id="Main" Title="gcode_gen" Level="1">
+    <ComponentGroupRef Id="MainFiles" />
+    <ComponentGroupRef Id="MenuShortcuts" />
+  </Feature>
 
-    <Feature Id="Main" Title="gcode_gen" Level="1">
-      <ComponentGroupRef Id="MainFiles" />
-      <ComponentGroupRef Id="MenuShortcuts" />
-    </Feature>
-
-  </Product>
-</Wix>
-
+</Product>
