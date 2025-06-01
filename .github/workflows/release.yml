@@ -17,6 +17,8 @@ permissions:
 
 jobs:
   msi:
+    # Only run when triggered by a tag or manually
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
     env:
       RELEASE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
