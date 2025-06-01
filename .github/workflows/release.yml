@@ -1,76 +1,71 @@
 name: Build & Release (Windows MSI)
 
-'on':
+on:
   push:
-    branches: ["main"]
-    tags: ["v*"]
-    tags: ["*"]
+    branches: [main]
+    tags:       # build on *any* tag; change to  v*  if you only want version tags
+      - '*'
   workflow_dispatch:
     inputs:
       version:
         description: "Release version when run manually"
         required: true
-        default: "1"
+        default: "dev"
 
 permissions:
   contents: write
 
 jobs:
   msi:
-    # Only run when triggered by a tag or manually
+    # Only run for tags or manual dispatch
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
+
+    # Use the tag name when triggered by a tag, otherwise the manual input
     env:
-      RELEASE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
+      RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
 
     steps:
     - uses: actions/checkout@v4
 
-    # 1. Set up MSBuild / VS toolchain
+    # 1. MSBuild / VS toolchain (needed by CMake)
     - uses: microsoft/setup-msbuild@v1.1
 
-    # 2. Build your program (CMake shown; swap for Cargo, etc.)
+    # 2. Build the executable (replace with Cargo, MSBuild, etc. as needed)
+    - name: Configure CMake
+      shell: pwsh
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
     - name: Build gcode_gen.exe
       shell: pwsh
-      run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=Release
-        cmake --build build --config Release
+      run: cmake --build build --config Release
 
-    # Ensure output directory exists for the installer
+    # 3. Prepare output folder
     - name: Prepare dist folder
       shell: pwsh
       run: |
-        New-Item -ItemType Directory -Path dist -Force | Out-Null
+        Remove-Item -Recurse -Force dist 2>$null
+        New-Item -ItemType Directory -Path dist | Out-Null
 
-    # 3. Install WiX v4 CLI (candle/light combined into `wix.exe build`)
+    # 4. Install WiX v4 CLI (candle/light combo)
     - name: Install WiX Toolset
       shell: pwsh
-      run: |
-        dotnet tool install --global wix
+      run: dotnet tool install --global wix --version 4.*
 
-    # 4. Compile installer
-    - name: Build MSI
+    # 5. Build the MSI
+    - name: Pack MSI
       shell: pwsh
       run: |
         wix build wix/installer.wxs `
                  -arch x64 `
-                 -o dist/gcode_gen-${{ github.ref_name }}-x64.msi
-                 -o dist/gcode_gen-${{ env.RELEASE_VERSION }}-x64.msi
+                 -out dist/gcode_gen-${{ env.RELEASE_VERSION }}-x64.msi
 
-    # 5. Create or update the GitHub Release
-    - name: Create Release
-      id: release
+    # 6. Create or update the GitHub release **and** upload the asset
+    - name: Publish release & MSI
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ github.ref_name }}
-        name: ${{ github.ref_name }}
         tag_name: ${{ env.RELEASE_VERSION }}
-        name: ${{ env.RELEASE_VERSION }}
+        name: gcode_gen ${{ env.RELEASE_VERSION }}
         generate_release_notes: true
-
-    # 6. Upload the MSI asset
-    - name: Upload MSI
-      uses: softprops/action-gh-release@v2
-      with:
-        files: dist/gcode_gen-${{ github.ref_name }}-x64.msi
-        files: dist/gcode_gen-${{ env.RELEASE_VERSION }}-x64.msi
+        files: |
+          dist/gcode_gen-${{ env.RELEASE_VERSION }}-x64.msi
