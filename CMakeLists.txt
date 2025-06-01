@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 option(BUILD_GUI "Build Qt GUI" OFF)
 enable_testing()
 if(BUILD_GUI)
-  find_package(Qt6 REQUIRED COMPONENTS Widgets)
+  find_package(Qt6 REQUIRED COMPONENTS Widgets WebEngineWidgets)
   find_package(Boost REQUIRED COMPONENTS geometry)
 
   add_executable(tracto_planner_qt
@@ -22,6 +22,7 @@ if(BUILD_GUI)
 
   target_link_libraries(tracto_planner_qt
     Qt6::Widgets
+    Qt6::WebEngineWidgets
     Boost::geometry
   )
 endif()

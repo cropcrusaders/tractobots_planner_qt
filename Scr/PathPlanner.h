@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <limits>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/linestring.hpp>
 
@@ -24,7 +25,8 @@ public:
   std::vector<BoostLinestr> computeRows(
     const std::vector<BoostPt>& boundary,
     double spacing,
-    double headland);
+    double headland,
+    double heading_deg = std::numeric_limits<double>::quiet_NaN());
 
   /**
    * Compute full plan:
@@ -35,6 +37,7 @@ public:
    * @param boundary       field polygon
    * @param spacing        row spacing (m)
    * @param headland       inward buffer (m)
+   * @param heading_deg    desired row heading in degrees (NaN = auto)
    * @param turn_radius    turn smoothing radius (m; 0 = sharp)
    * @param reverse_passes zig‑zag direction if true
    * @param reverse_dist   how far to reverse at each end (m; 0 = none)
@@ -43,6 +46,7 @@ public:
     const std::vector<BoostPt>& boundary,
     double spacing,
     double headland,
+    double heading_deg,
     double turn_radius,
     bool   reverse_passes,
     double reverse_dist);
