@@ -15,7 +15,10 @@
       </Directory>
     </StandardDirectory>
 
-    <ComponentGroupRef Id="BuildComponents"/>
+    <!-- every file from $(var.BuildDir) → PRODUCTDIR -->
+    <Component Id="CmpAll" Guid="*">
+      <File Source="$(var.BuildDir)\*.*" Recursive="yes" KeyPath="yes"/>
+    </Component>
 
     <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="PROGDIR" Name="CropCrusaders"/>
@@ -36,10 +39,9 @@
     </Component>
 
     <Feature Id="Main" Title="gcode_gen" Level="1">
-      <ComponentGroupRef Id="BuildComponents"/>
+      <ComponentRef Id="CmpAll"/>
       <ComponentRef Id="CmpShortcut"/>
     </Feature>
 
   </Package>
 </Wix>
-
