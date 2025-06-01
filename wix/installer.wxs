@@ -15,10 +15,10 @@
       </Directory>
     </StandardDirectory>
 
-    <!-- All files harvested from $(var.BuildDir) -->
+   
     <ComponentGroupRef Id="BuildComponents"/>
 
-    <!-- Start-menu shortcut -->
+
     <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="PROGDIR" Name="CropCrusaders"/>
     </StandardDirectory>
