@@ -26,6 +26,12 @@ jobs:
         cmake -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release
 
+    # Remove any old installer artifacts if present
+    - name: Clean dist folder
+      shell: pwsh
+      run: |
+        if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+
     # Ensure output directory exists for the installer
     - name: Prepare dist folder
       shell: pwsh
