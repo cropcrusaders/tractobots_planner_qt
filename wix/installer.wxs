@@ -2,7 +2,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="gcode_gen"
            Manufacturer="CropCrusaders"
-           Version="1.0.0"
+           Version="$(var.ProductVersion)"
            InstallerVersion="600"
            UpgradeCode="{bed5a804-5004-4e97-9dc1-c3c65803ea45}">
 

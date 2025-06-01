@@ -32,6 +32,12 @@ jobs:
       run: |
         New-Item -ItemType Directory -Path dist -Force | Out-Null
 
+    - name: Set product version
+      shell: pwsh
+      run: |
+        $ver = $env:GITHUB_REF_NAME.TrimStart('v')
+        "PRODUCT_VERSION=$ver" >> $env:GITHUB_ENV
+
     # 3. Install WiX v4 CLI (candle/light combined into `wix.exe build`)
     - name: Install WiX Toolset
       shell: pwsh
@@ -44,6 +50,7 @@ jobs:
       run: |
         wix build wix/installer.wxs `
                  -arch x64 `
+                 -dProductVersion=$env:PRODUCT_VERSION `
                  -o dist/gcode_gen-${{ github.ref_name }}-x64.msi
 
     # 5. Create or update the GitHub Release
