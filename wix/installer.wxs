@@ -6,15 +6,15 @@
            InstallerVersion="600"
            UpgradeCode="{bed5a804-5004-4e97-9dc1-c3c65803ea45}">
 
-    <!-- Install to C:\Program Files\CropCrusaders\gcode_gen -->
-    <DirectoryRef Id="ProgramFilesFolder">
-      <Directory Id="INSTALLFOLDER" Name="CropCrusaders">
-        <Directory Id="TARGETDIR" Name="gcode_gen" />
-      </Directory>
-    </DirectoryRef>
+  <!-- Install to C:\Program Files\CropCrusaders\gcode_gen -->
+  <StandardDirectory Id="ProgramFilesFolder">
+    <Directory Id="INSTALLFOLDER" Name="CropCrusaders">
+      <Directory Id="PRODUCTDIR" Name="gcode_gen" />
+    </Directory>
+  </StandardDirectory>
 
     <!-- Actual payload -->
-    <ComponentGroup Id="MainFiles" Directory="TARGETDIR">
+  <ComponentGroup Id="MainFiles" Directory="PRODUCTDIR">
       <Component>
         <File Source="build\\Release\\gcode_gen.exe" />
       </Component>
