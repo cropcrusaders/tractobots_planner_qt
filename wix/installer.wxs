@@ -16,7 +16,8 @@
     <!-- Actual payload -->
   <ComponentGroup Id="MainFiles" Directory="PRODUCTDIR">
       <Component>
-        <File Source="build\\Release\\gcode_gen.exe" />
+        <!-- Path to the executable built by CMake -->
+        <File Source="build/src/gcode_gen/Release/gcode_gen.exe" />
       </Component>
     </ComponentGroup>
 
