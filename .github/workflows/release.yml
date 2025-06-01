@@ -1,0 +1,51 @@
+name: Build & Release (Windows MSI)
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  msi:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # 1. Set up MSBuild / VS toolchain
+    - uses: microsoft/setup-msbuild@v1.1
+
+    # 2. Build your program (CMake shown; swap for Cargo, etc.)
+    - name: Build gcode_gen.exe
+      shell: pwsh
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release
+
+    # 3. Install WiX v4 CLI (candle/light combined into `wix.exe build`)
+    - name: Install WiX Toolset
+      shell: pwsh
+      run: |
+        dotnet tool install --global wix
+
+    # 4. Compile installer
+    - name: Build MSI
+      shell: pwsh
+      run: |
+        wix build wix/installer.wxs `
+                 -arch x64 `
+                 -o dist/gcode_gen-${{ github.ref_name }}-x64.msi
+
+    # 5. Create or update the GitHub Release
+    - name: Create Release
+      id: release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: ${{ github.ref_name }}
+        generate_release_notes: true
+
+    # 6. Upload the MSI asset
+    - name: Upload MSI
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/gcode_gen-${{ github.ref_name }}-x64.msi
