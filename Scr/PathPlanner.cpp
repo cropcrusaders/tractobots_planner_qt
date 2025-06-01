@@ -11,7 +11,8 @@ namespace bg = boost::geometry;
 std::vector<BoostLinestr> PathPlanner::computeRows(
     const std::vector<BoostPt>& boundary,
     double spacing,
-    double headland)
+    double headland,
+    double heading_deg)
 {
     using Polygon = bg::model::polygon<BoostPt>;
     Polygon poly; bg::assign_points(poly, boundary); bg::correct(poly);
@@ -21,13 +22,18 @@ std::vector<BoostLinestr> PathPlanner::computeRows(
     bg::buffer(poly, inner,
       bg::strategy::buffer::distance_symmetric<double>(-headland));
 
-    // figure row orientation
-    Polygon minRect;
-    bg::minimum_rotated_rectangle(inner, minRect);
-    auto coords = minRect.outer();
-    double dx = coords[1].x() - coords[0].x();
-    double dy = coords[1].y() - coords[0].y();
-    double angle = std::atan2(dy, dx);
+    double angle;
+    if (std::isnan(heading_deg)) {
+        // figure row orientation automatically
+        Polygon minRect;
+        bg::minimum_rotated_rectangle(inner, minRect);
+        auto coords = minRect.outer();
+        double dx = coords[1].x() - coords[0].x();
+        double dy = coords[1].y() - coords[0].y();
+        angle = std::atan2(dy, dx);
+    } else {
+        angle = heading_deg * M_PI / 180.0;
+    }
 
     // rotate so rows align with X
     Polygon rotated;
@@ -58,11 +64,12 @@ std::vector<Segment> PathPlanner::computePlan(
     const std::vector<BoostPt>& boundary,
     double spacing,
     double headland,
+    double heading_deg,
     double turn_radius,
     bool   reverse_passes,
     double reverse_dist)
 {
-    auto rows = computeRows(boundary, spacing, headland);
+    auto rows = computeRows(boundary, spacing, headland, heading_deg);
     plan_.clear();
     bool forward = true;
 

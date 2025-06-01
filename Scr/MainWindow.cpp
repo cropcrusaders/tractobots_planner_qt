@@ -29,7 +29,8 @@ void MainWindow::on_view_clicked(const QPointF &scenePos) {
 void MainWindow::on_generateButton_clicked() {
     double spacing = ui->rowSpacingSpin->value();
     double headland = ui->headlandSpin->value();
-    auto rows = planner_.computeRows(boundaryPts_, spacing, headland);
+    double heading = ui->headingSpin->value();
+    auto rows = planner_.computeRows(boundaryPts_, spacing, headland, heading);
     // Draw them:
     for (auto &line : rows) {
       auto a = line.first, b = line.second;

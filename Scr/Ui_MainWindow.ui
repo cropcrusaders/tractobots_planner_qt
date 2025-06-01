@@ -10,8 +10,19 @@
 
     <!-- Graphics View for drawing boundary and rows -->
     <item>
-     <widget class="QGraphicsView" name="graphicsView"/>
-    </item>
+    <widget class="QGraphicsView" name="graphicsView"/>
+   </item>
+
+   <!-- Google Maps view -->
+   <item>
+    <widget class="QWebEngineView" name="mapView">
+     <property name="url">
+      <url>
+       <string>https://www.google.com/maps/</string>
+      </url>
+     </property>
+    </widget>
+   </item>
 
     <!-- Control widgets: spacing, headland, turn radius, reverse, generate/export -->
     <item>
@@ -41,6 +52,16 @@
         <property name="prefix"><string>Turn Radius (m): </string></property>
         <property name="minimum"><double>0.0</double></property>
         <property name="value"><double>5.0</double></property>
+       </widget>
+      </item>
+
+      <!-- Heading -->
+      <item>
+       <widget class="QDoubleSpinBox" name="headingSpin">
+        <property name="prefix"><string>Heading (&deg;): </string></property>
+        <property name="minimum"><double>0.0</double></property>
+        <property name="maximum"><double>359.0</double></property>
+        <property name="value"><double>0.0</double></property>
        </widget>
       </item>
 
