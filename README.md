@@ -141,3 +141,6 @@ This project is released under the **[GPL v3](LICENSE)**.
 5. Open a Pull Request
 
 Happy farming automation! 🌱🚜  
+
+## Yocto Build
+A basic Yocto configuration is provided under `yocto/` to build the `rust-spray-image`.
