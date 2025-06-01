@@ -2,16 +2,24 @@ name: Build & Release (Windows MSI)
 
 on:
   push:
+    branches: ["main"]
     tags: ["v*"]
+    tags: ["*"]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version when run manually"
+        required: true
+        default: "1"
 
 permissions:
   contents: write
 
 jobs:
   msi:
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
+    env:
+      RELEASE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version }}
 
     steps:
     - uses: actions/checkout@v4
@@ -45,6 +53,7 @@ jobs:
         wix build wix/installer.wxs `
                  -arch x64 `
                  -o dist/gcode_gen-${{ github.ref_name }}-x64.msi
+                 -o dist/gcode_gen-${{ env.RELEASE_VERSION }}-x64.msi
 
     # 5. Create or update the GitHub Release
     - name: Create Release
@@ -53,6 +62,8 @@ jobs:
       with:
         tag_name: ${{ github.ref_name }}
         name: ${{ github.ref_name }}
+        tag_name: ${{ env.RELEASE_VERSION }}
+        name: ${{ env.RELEASE_VERSION }}
         generate_release_notes: true
 
     # 6. Upload the MSI asset
@@ -60,3 +71,4 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: dist/gcode_gen-${{ github.ref_name }}-x64.msi
+        files: dist/gcode_gen-${{ env.RELEASE_VERSION }}-x64.msi
