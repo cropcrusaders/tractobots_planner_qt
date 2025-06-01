@@ -1,10 +1,9 @@
-
 name: Build & Release (Windows MSI)
 
 on:
   push:
-    branches: [main]   # build every commit to main
-    tags:    ['*']     # and any tag
+    branches: [main]     # build every commit on main
+    tags:     ['*']      # build every tag (e.g. v1.2.0)
   workflow_dispatch:
     inputs:
       version:
@@ -13,16 +12,15 @@ on:
         default: "dev"
 
 permissions:
-  contents: write
+  contents: read
+  packages: read         # needed if you pull/push GHCR images elsewhere
+  # ↑ keeping packages:read is handy if you ever add docker steps
 
 jobs:
   msi:
     runs-on: windows-latest
 
-    # One variable that covers all situations:
-    # • tag build         -> tag name   (e.g. v1.2.0)
-    # • manual dispatch   -> input      (e.g. 1.2.0-rc1)
-    # • main commit build -> commit sha (short) or 'dev'
+    # Resolve RELEASE_VERSION once, usable in every step
     env:
       RELEASE_VERSION: >-
         ${{ github.event_name == 'workflow_dispatch'
@@ -32,12 +30,19 @@ jobs:
             || github.sha }}
 
     steps:
+    # ------------------------------
+    # 1. Fetch source
+    # ------------------------------
     - uses: actions/checkout@v4
 
-    # Toolchain
+    # ------------------------------
+    # 2. MSBuild / toolchain for CMake
+    # ------------------------------
     - uses: microsoft/setup-msbuild@v1.1
 
-    # Build exe
+    # ------------------------------
+    # 3. Configure + build
+    # ------------------------------
     - name: Configure CMake
       shell: pwsh
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
@@ -46,19 +51,25 @@ jobs:
       shell: pwsh
       run: cmake --build build --config Release
 
-    # Prepare dist
+    # ------------------------------
+    # 4. Prepare dist folder (robust)
+    # ------------------------------
     - name: Prepare dist folder
       shell: pwsh
       run: |
-        Remove-Item -Recurse -Force dist 2>$null
+        Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
         New-Item -ItemType Directory -Path dist | Out-Null
 
-    # WiX v4 CLI
+    # ------------------------------
+    # 5. Install WiX v4 CLI
+    # ------------------------------
     - name: Install WiX Toolset
       shell: pwsh
       run: dotnet tool install --global wix --version 4.*
 
-    # Pack MSI
+    # ------------------------------
+    # 6. Build the MSI
+    # ------------------------------
     - name: Pack MSI
       shell: pwsh
       run: |
@@ -66,15 +77,18 @@ jobs:
                  -arch x64 `
                  -out dist/gcode_gen-${{ env.RELEASE_VERSION }}-x64.msi
 
-    # Upload MSI as build artifact so you can grab it from
-    # non-release runs (e.g. every commit to main).
+    # ------------------------------
+    # 7. Save MSI as workflow artifact
+    # ------------------------------
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: gcode_gen-msi
         path: dist/*.msi
 
-    # Create / update GitHub Release **only** on tag or manual dispatch
+    # ------------------------------
+    # 8. Create / update GitHub Release (only for tag or manual)
+    # ------------------------------
     - name: Publish GitHub release
       if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
