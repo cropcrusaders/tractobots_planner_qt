@@ -1,10 +1,10 @@
+
 name: Build & Release (Windows MSI)
 
 on:
   push:
-    branches: [main]
-    tags:       # build on *any* tag; change to  v*  if you only want version tags
-      - '*'
+    branches: [main]   # build every commit to main
+    tags:    ['*']     # and any tag
   workflow_dispatch:
     inputs:
       version:
@@ -17,21 +17,27 @@ permissions:
 
 jobs:
   msi:
-    # Only run for tags or manual dispatch
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
 
-    # Use the tag name when triggered by a tag, otherwise the manual input
+    # One variable that covers all situations:
+    # • tag build         -> tag name   (e.g. v1.2.0)
+    # • manual dispatch   -> input      (e.g. 1.2.0-rc1)
+    # • main commit build -> commit sha (short) or 'dev'
     env:
-      RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+      RELEASE_VERSION: >-
+        ${{ github.event_name == 'workflow_dispatch'
+            && inputs.version
+            || startsWith(github.ref, 'refs/tags/')
+            && github.ref_name
+            || github.sha }}
 
     steps:
     - uses: actions/checkout@v4
 
-    # 1. MSBuild / VS toolchain (needed by CMake)
+    # Toolchain
     - uses: microsoft/setup-msbuild@v1.1
 
-    # 2. Build the executable (replace with Cargo, MSBuild, etc. as needed)
+    # Build exe
     - name: Configure CMake
       shell: pwsh
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
@@ -40,19 +46,19 @@ jobs:
       shell: pwsh
       run: cmake --build build --config Release
 
-    # 3. Prepare output folder
+    # Prepare dist
     - name: Prepare dist folder
       shell: pwsh
       run: |
         Remove-Item -Recurse -Force dist 2>$null
         New-Item -ItemType Directory -Path dist | Out-Null
 
-    # 4. Install WiX v4 CLI (candle/light combo)
+    # WiX v4 CLI
     - name: Install WiX Toolset
       shell: pwsh
       run: dotnet tool install --global wix --version 4.*
 
-    # 5. Build the MSI
+    # Pack MSI
     - name: Pack MSI
       shell: pwsh
       run: |
@@ -60,8 +66,17 @@ jobs:
                  -arch x64 `
                  -out dist/gcode_gen-${{ env.RELEASE_VERSION }}-x64.msi
 
-    # 6. Create or update the GitHub release **and** upload the asset
-    - name: Publish release & MSI
+    # Upload MSI as build artifact so you can grab it from
+    # non-release runs (e.g. every commit to main).
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: gcode_gen-msi
+        path: dist/*.msi
+
+    # Create / update GitHub Release **only** on tag or manual dispatch
+    - name: Publish GitHub release
+      if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ env.RELEASE_VERSION }}
