@@ -15,16 +15,15 @@
       </Directory>
     </StandardDirectory>
 
-    <!-- every file from $(var.BuildDir) → PRODUCTDIR -->
-    <Component Id="CmpAll" Guid="*">
-      <File Source="$(var.BuildDir)\*.*" Recursive="yes" KeyPath="yes"/>
-    </Component>
+    <!-- All files harvested from $(var.BuildDir) -->
+    <ComponentGroupRef Id="BuildComponents"/>
 
+    <!-- Start-menu shortcut -->
     <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="PROGDIR" Name="CropCrusaders"/>
     </StandardDirectory>
 
-    <Component Id="CmpShortcut" Guid="*">
+    <Component Id="CmpShortcut" Directory="PROGDIR" Guid="*">
       <Shortcut Id="ScExe"
                 Name="gcode_gen"
                 Target="[PRODUCTDIR]gcode_gen.exe"
@@ -35,11 +34,10 @@
                      Type="string"
                      Value="installed"
                      KeyPath="yes"/>
-      <DirectoryRef Id="PROGDIR"/>
     </Component>
 
     <Feature Id="Main" Title="gcode_gen" Level="1">
-      <ComponentRef Id="CmpAll"/>
+      <ComponentGroupRef Id="BuildComponents"/>
       <ComponentRef Id="CmpShortcut"/>
     </Feature>
 
