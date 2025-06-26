@@ -1,5 +1,7 @@
 #include "gcode_gen/converter.hpp"
 #include "gcode_gen/waypoint.hpp"
+#include "gcode_gen/writer.hpp"
+#include "gcode_gen/advanced_writer.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -10,10 +12,7 @@ using namespace gcode_gen;
 int main(int argc, char** argv) {
     std::string in_path;
     std::string out_path;
-    bool relative = false;
-    int down_code = 100;
-    int up_code = 101;
-    double speed = 1.0;
+    PlannerSettings ps;
     std::string comment;
     std::string z_field = "alt";
 
@@ -25,12 +24,13 @@ int main(int argc, char** argv) {
         };
         if (arg == "--in") in_path = get_val("--in");
         else if (arg == "--out") out_path = get_val("--out");
-        else if (arg == "--relative") relative = true;
-        else if (arg == "--down-code") down_code = std::stoi(get_val(arg));
-        else if (arg == "--up-code") up_code = std::stoi(get_val(arg));
-        else if (arg == "--speed") speed = std::stod(get_val(arg));
+        else if (arg == "--incremental") ps.incremental = true;
+        else if (arg == "--feed-work") ps.feed_work = std::stod(get_val(arg));
+        else if (arg == "--feed-turn") ps.feed_turn = std::stod(get_val(arg));
+        else if (arg == "--feed-rev") ps.feed_reverse = std::stod(get_val(arg));
         else if (arg == "--comment") comment = get_val(arg);
         else if (arg == "--z-field") z_field = get_val(arg);
+        else if (arg == "--no-subprog") ps.use_subprograms = false;
         else {
             std::cerr << "Unknown argument: " << arg << "\n";
             return 1;
@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
     if (wps.size() > 10000) {
         std::cerr << "Warning: large waypoint count: " << wps.size() << "\n";
     }
-    auto lines = toGcode(wps, relative, down_code, up_code, speed, comment);
+    auto lines = AdvancedWriter(ps).write(wps);
 
     std::ofstream out(out_path);
     if (!out.is_open()) {
