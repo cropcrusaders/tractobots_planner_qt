@@ -17,12 +17,18 @@ Draw your field boundary, specify row spacing, headland, turn radius and backup 
 - **Smooth Turns**  
   Insert semicircular arcs of configurable radius between rows for gentle U‑turns (G2/CW arc commands).
 
-- **G‑Code Export**  
-  • `M3 S0/S1` for implement up/down  
-  • `G0` for rapid moves with `; heading=…` comments  
-  • `G1` for linear cuts or reverse moves  
-  • `G2` for CW arcs (turn radius)  
+- **G‑Code Export**
+  • `M3 S0/S1` for implement up/down
+  • `G0` for rapid moves with `; heading=…` comments
+  • `G1` for linear cuts or reverse moves
+  • `G2` for CW arcs (turn radius)
   Outputs a single `.gcode` file ready for your robot or CNC‑style interpreter.
+
+  Advanced options include:
+  • absolute (`G90`) or incremental (`G91`) output
+  • per‑phase feed rates (`F` words)
+  • optional sub‑program loops (`O100`/`M98`)
+  • safe‑Z lifts and coordinate system offsets (`G10`)
 
 - **Interactive GUI**  
   • Click to define boundary points in the canvas  
@@ -72,7 +78,9 @@ cmake -S . -B build && cmake --build build -j
     --in waypoints.csv \
     --out north_strip.gcode \
     --comment "North paddock – May 2025" \
-    --speed 0.9
+    --feed-work 1200 \
+    --feed-turn 800 \
+    --incremental
 ```
 
 ---
@@ -140,4 +148,11 @@ This project is released under the **[GPL v3](LICENSE)**.
 4. Push (`git push origin feat/my‑awesome‑feature`)  
 5. Open a Pull Request
 
-Happy farming automation! 🌱🚜  
+Happy farming automation! 🌱🚜
+
+---
+
+## Changelog
+
+- **v1.3 – Complex G-coder**
+  - new AdvancedWriter with incremental mode, feed-rate profiles and optional subprogram folding
