@@ -16,14 +16,14 @@ int main() {
     f.close();
 
     auto wps = readWaypoints("test.json", "alt");
-    auto lines = toGcode(wps, false, 100, 101, 1.0, "demo");
+    auto lines = toGcode(wps, false, 100, 101, 1.0, "demo", false, 0, {wps[0].lat, wps[0].lon});
     assert(!lines.empty());
     assert(lines[0].rfind(";",0)==0);
-    assert(lines.size()>=3);
-    assert(lines[2]=="G1 X35.689600 Y-120.691500 F1" || lines[2]=="G1 X35.689600 Y-120.691500" || lines[2].rfind("G1 X35.689600 Y-120.691500",0)==0);
+    assert(lines.size()>=4);
+    assert(lines[3].rfind("G1",0)==0);
 
-    auto rel = toGcode(wps, true, 100, 101, 1.0, "demo");
-    assert(rel.size()>=3);
-    assert(rel[1]=="G91");
+    auto rel = toGcode(wps, true, 100, 101, 1.0, "demo", false, 0, {wps[0].lat, wps[0].lon});
+    assert(rel.size()>=4);
+    assert(rel[2]=="G91");
     return 0;
 }

@@ -14,7 +14,10 @@ std::vector<std::string> toGcode(const std::vector<Waypoint>& wps,
                                  int downCode,
                                  int upCode,
                                  double speed,
-                                 std::string_view comment);
+                                 std::string_view comment,
+                                 bool comment_gps,
+                                 int epsg,
+                                 std::pair<double,double> origin);
 
 } // namespace gcode_gen
 
